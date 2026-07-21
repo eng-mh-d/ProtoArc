@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Android / Chrome: no favicon so the tab / task switcher does not show a logo tile. -->
+  <link rel="icon" href="data:," />
+  <!-- Match page background so the browser UI / splash blend without a branded strip. -->
+  <meta name="theme-color" content="#0f1419" />
+  <meta name="color-scheme" content="dark" />
+  <!-- Optional PWA manifest: display=browser avoids an "installed app" splash with icons on Android. -->
+  <link rel="manifest" href="UserGuide.webmanifest" />
+  <title>ProtoArc T1 Plus — User guide (all platforms)</title>
+  <style>
+    :root { --bg: #0f1419; --card: #1a2332; --text: #e7ecf3; --muted: #9aa8bc; --accent: #3d8bfd; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.55; padding: 16px; max-width: 720px; margin-inline: auto; }
+    h1 { font-size: 1.35rem; margin-top: 0; }
+    h2 { font-size: 1.05rem; color: #b8c5d9; margin-top: 1.75rem; border-bottom: 1px solid #2a3544; padding-bottom: 6px; }
+    p, li { color: var(--text); }
+    .muted { color: var(--muted); font-size: 0.92rem; }
+    .card { background: var(--card); border-radius: 12px; padding: 16px 18px; margin: 14px 0; border: 1px solid #2a3544; }
+    .pill { display: inline-block; background: #243044; color: #8ec5ff; padding: 4px 10px; border-radius: 999px; font-size: 0.78rem; margin: 2px 4px 2px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 10px 0; }
+    th, td { border: 1px solid #2a3544; padding: 8px 10px; text-align: left; }
+    th { background: #243044; }
+    code { background: #243044; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+    ol { padding-left: 1.2rem; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<h1>ProtoArc T1 Plus — User guide</h1>
+<p class="muted">Read this page in <strong>any browser</strong> on <strong>Mac</strong>, <strong>iPhone</strong>, <strong>iPad</strong>, <strong>Android</strong>, or <strong>desktop web</strong>. The touchpad <em>driver</em> itself runs only on macOS; other devices can use this guide for reference or sharing.</p>
+
+<div class="card">
+  <strong>Platforms</strong><br />
+  <span class="pill">macOS — full app</span>
+  <span class="pill">iOS / iPadOS — this guide in Safari</span>
+  <span class="pill">Android — Chrome / Firefox</span>
+  <span class="pill">Web — any HTML viewer</span>
+</div>
+
+<h2>1. What the macOS app does</h2>
+<p>ProtoArc T1 Plus is a <strong>menu bar app</strong> for Mac that connects to your ProtoArc T1 Plus touchpad over Bluetooth, reads touch data in user space, and moves the cursor, clicks, scrolls, and runs gesture shortcuts — without DriverKit or disabling SIP.</p>
+
+<h2>2. First-time setup (Mac)</h2>
+<ol>
+  <li>Open the app from your Applications folder (or Xcode build).</li>
+  <li>Read the welcome slides, then enter your <strong>serial number</strong> (from <code>SerialNumbers.txt</code>).</li>
+  <li>In <strong>System Settings → Privacy &amp; Security</strong>, enable <strong>Input Monitoring</strong> and <strong>Accessibility</strong> for the app.</li>
+  <li>Pair the touchpad via Bluetooth.</li>
+  <li>Click the menu bar icon → <strong>Start Driver</strong>. Status turns green when the device is connected.</li>
+  <li>Use <strong>Settings…</strong> for speeds, gestures, raw report log, and calibration.</li>
+</ol>
+
+<h2>3. How to use (daily)</h2>
+<ul>
+  <li><strong>Move</strong> — one finger on the pad.</li>
+  <li><strong>Left click</strong> — quick one-finger tap.</li>
+  <li><strong>Click and drag</strong> — tap, then hold and move (or use double-tap &amp; slide if enabled in Settings).</li>
+  <li><strong>Scroll</strong> — two fingers.</li>
+  <li><strong>Right click</strong> — two-finger tap (touch-only).</li>
+  <li><strong>Pinch</strong> — two-finger pinch for zoom shortcuts.</li>
+  <li><strong>Three-finger swipes</strong> — Spaces, Mission Control, App Exposé (as configured).</li>
+</ul>
+
+<h2>4. Gesture overview</h2>
+<table>
+  <thead><tr><th>Gesture</th><th>Default action</th></tr></thead>
+  <tbody>
+    <tr><td>1 finger move</td><td>Move pointer</td></tr>
+    <tr><td>1 finger tap</td><td>Left click</td></tr>
+    <tr><td>2 finger move</td><td>Scroll</td></tr>
+    <tr><td>2 finger tap</td><td>Right click</td></tr>
+    <tr><td>2 finger pinch</td><td>Zoom in / out</td></tr>
+    <tr><td>3 finger swipe ← / →</td><td>Space left / right</td></tr>
+    <tr><td>3 finger swipe ↑</td><td>Mission Control</td></tr>
+    <tr><td>3 finger swipe ↓</td><td>App Exposé</td></tr>
+  </tbody>
+</table>
+<p class="muted">Exact actions depend on your Settings toggles.</p>
+
+<h2>5. Tips</h2>
+<ul>
+  <li>If the cursor misbehaves, try the <strong>Report layout</strong> picker in Settings and optional <strong>Log raw reports</strong>.</li>
+  <li><strong>Seize device</strong> (when on) prevents macOS and the app from both handling the pad.</li>
+  <li>If the pointer feels “stuck” after using the menu bar, open the menu again briefly — the app clears drag state automatically.</li>
+</ul>
+
+<h2>6. iOS, Android, and web</h2>
+<p>There is <strong>no iOS or Android build</strong> of this driver: Apple and Google do not allow the same HID + accessibility event injection model for a third-party Bluetooth touchpad driver like on macOS.</p>
+<p><strong>Web</strong> — this file is plain HTML; host it on your site or AirDrop / cloud-open on any phone for the same instructions.</p>
+
+<p class="muted" style="margin-top:2rem;">ProtoArc T1 Plus · User guide · Bundled with the macOS app</p>
+
+</body>
+</html>

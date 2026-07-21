@@ -1,0 +1,18 @@
+# ProtoArc T1 Plus — Serial Numbers
+# ---------------------------------
+# [weekly]  = valid for 7 days after activation
+# [active]  = permanent license
+#
+# You can also use: weekly=CODE or active=CODE
+# Lines starting with # are ignored.
+#
+# For your private codes, keep a local copy as SerialNumbers.private.txt
+# (that filename is gitignored and not uploaded).
+
+[weekly]
+WEEK-EXAMPLE-7D-001-XXXX
+WEEK-EXAMPLE-7D-002-XXXX
+
+[active]
+ACTIVE-EXAMPLE-LIFE-001-XXXX
+ACTIVE-EXAMPLE-LIFE-002-XXXX

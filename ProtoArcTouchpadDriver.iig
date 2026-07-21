@@ -1,0 +1,29 @@
+#ifndef _PROTOARCTOUCHPADDRIVER_H
+#define _PROTOARCTOUCHPADDRIVER_H
+
+#include <HIDDriverKit/IOUserHIDEventService.iig>
+
+class ProtoArcTouchpadDriver : public IOUserHIDEventService
+{
+public:
+    virtual bool init() override;
+    virtual void free() override;
+
+    virtual kern_return_t Start(IOService * provider) override;
+    virtual kern_return_t Stop(IOService * provider) override;
+
+    // We override handleReport to intercept the raw HID reports 
+    // coming from the ProtoArc touchpad and parse them ourselves.
+    virtual void handleReport(
+        uint64_t timestamp,
+        uint8_t *report,
+        uint32_t reportLength,
+        IOHIDReportType type,
+        uint32_t reportID) override;
+
+protected:
+    // Helper function to dispatch IOHIDEvent digitizer events
+    void DispatchDigitizerEvents(uint64_t timestamp, uint8_t *report, uint32_t reportLength);
+};
+
+#endif /* _PROTOARCTOUCHPADDRIVER_H */

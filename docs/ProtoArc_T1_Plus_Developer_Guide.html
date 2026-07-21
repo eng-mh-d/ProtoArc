@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ProtoArc T1 Plus — Developer &amp; Study Guide (EN / AR)</title>
+  <style>
+    @page { size: A4; margin: 18mm; }
+    body {
+      font-family: "Helvetica Neue", Helvetica, "Arial Unicode MS", Arial, "Geeza Pro", sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #1a1a1a;
+      max-width: 100%;
+    }
+    h1 { font-size: 20pt; border-bottom: 2px solid #333; padding-bottom: 0.3em; }
+    h2 { font-size: 14pt; margin-top: 1.4em; color: #222; page-break-after: avoid; }
+    h3 { font-size: 11.5pt; margin-top: 1em; color: #333; page-break-after: avoid; }
+    code, .file { font-family: Menlo, Consolas, monospace; font-size: 9.5pt; background: #f4f4f4; padding: 0.1em 0.35em; border-radius: 3px; }
+    pre {
+      font-family: Menlo, Consolas, monospace; font-size: 8.8pt;
+      background: #f8f8f8; border: 1px solid #ddd; padding: 10px; overflow-x: auto;
+      white-space: pre-wrap; word-break: break-all;
+    }
+    table { border-collapse: collapse; width: 100%; margin: 0.8em 0; font-size: 9.8pt; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: #eee; }
+    .muted { color: #555; font-size: 9.5pt; }
+    .break { page-break-before: always; }
+    .lang-ar { direction: rtl; text-align: right; font-family: "Geeza Pro", "Arial Unicode MS", "Helvetica Neue", sans-serif; }
+    .lang-ar h1, .lang-ar h2, .lang-ar h3 { text-align: right; }
+    .lang-ar table th, .lang-ar table td { text-align: right; }
+    .lang-ar pre { direction: ltr; text-align: left; }
+    .badge { display: inline-block; background: #0a5; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 8.5pt; }
+    ul { margin: 0.4em 0; padding-left: 1.4em; }
+    .lang-ar ul { padding-right: 1.4em; padding-left: 0; }
+    .toc a { color: #0645ad; text-decoration: none; }
+    .note { border-left: 4px solid #08a; padding-left: 12px; margin: 10px 0; background: #f0f8ff; padding: 8px 12px; }
+  </style>
+</head>
+<body>
+
+<h1>ProtoArc T1 Plus<br /><span class="muted">Developer &amp; Study Guide — English</span></h1>
+<p class="muted">User-space macOS touchpad driver: IOHIDManager → parse reports → GestureEngine → CGEvent synthesis. Bilingual document (English then Arabic).</p>
+
+<h2 id="toc-en">Contents (English)</h2>
+<ul class="toc">
+  <li><a href="#en-overview">1. Overview</a></li>
+  <li><a href="#en-arch">2. Architecture &amp; data flow</a></li>
+  <li><a href="#en-build">3. How to build and run</a></li>
+  <li><a href="#en-perm">4. Permissions &amp; licensing</a></li>
+  <li><a href="#en-files">5. Source files explained</a></li>
+  <li><a href="#en-study">6. Suggested study order</a></li>
+</ul>
+
+<h2 id="en-overview">1. Overview</h2>
+<p>This app drives the <strong>ProtoArc T1 Plus</strong> Bluetooth touchpad from <strong>user space</strong> (no DriverKit, no SIP changes). It matches the device with <code>IOHIDManager</code> (Vendor ID <code>1256</code> / <code>0x04E8</code>, Product ID <code>28705</code> / <code>0x7021</code>), reads raw HID digitizer reports, and posts mouse/scroll/keyboard events via <code>CGEvent</code>.</p>
+
+<h2 id="en-arch">2. Architecture &amp; data flow</h2>
+<pre>
+Bluetooth HID  →  IOHIDManager (dedicated CFRunLoop thread: HIDRunLoop)
+                      ↓ input report callback
+                 TouchpadController.handleReport
+                      ↓ ReportParser → TouchFrame
+                 GestureEngine.process(frame:)
+                      ↓
+                 EventSynthesizer  →  CGEvent (cursor, clicks, scroll, shortcuts)
+
+SwiftUI (main actor): MenuBarExtra, Settings window, TouchpadUIState for live view
+</pre>
+
+<h2 id="en-build">3. How to build and run</h2>
+<h3>Requirements</h3>
+<ul>
+  <li>macOS with <strong>Xcode 26+</strong> (project targets macOS 26 SDK).</li>
+  <li>Apple Silicon or Intel Mac; signing can be <em>Sign to Run Locally</em> / Automatic.</li>
+</ul>
+<h3>Build in Xcode</h3>
+<ol>
+  <li>Open <code class="file">ProtoArc T1 Plus.xcodeproj</code>.</li>
+  <li>Select scheme <strong>ProtoArc T1 Plus</strong> and destination <strong>My Mac</strong>.</li>
+  <li>Press <strong>⌘R</strong> (Run) or <strong>⌘B</strong> (Build).</li>
+</ol>
+<h3>Build from Terminal</h3>
+<pre>cd "/path/to/ProtoArc T1 Plus"
+xcodebuild -project "ProtoArc T1 Plus.xcodeproj" \
+  -scheme "ProtoArc T1 Plus" -configuration Debug build</pre>
+<p>Output app: <code>~/Library/Developer/Xcode/DerivedData/.../Build/Products/Debug/ProtoArc T1 Plus.app</code></p>
+<h3>First run checklist</h3>
+<ul>
+  <li>Grant <strong>Input Monitoring</strong> and <strong>Accessibility</strong> in System Settings → Privacy &amp; Security.</li>
+  <li>Activate a serial from <code class="file">ProtoArc T1 Plus/SerialNumbers.txt</code> (bundled with the app).</li>
+  <li>Pair the touchpad over Bluetooth; press <strong>Start Driver</strong> in the menu bar or Settings.</li>
+</ul>
+
+<h2 id="en-perm">4. Permissions &amp; licensing</h2>
+<ul>
+  <li><strong>Input Monitoring</strong> — required to receive HID reports from the device.</li>
+  <li><strong>Accessibility</strong> — required to synthesize pointer and keyboard events.</li>
+  <li>The app target is <strong>not sandboxed</strong> (needed for HID + event injection).</li>
+  <li><strong>SerialManager</strong> loads allowed serials from <code class="file">SerialNumbers.txt</code>: <em>weekly</em> (7 days after activation) and <em>active</em> (permanent).</li>
+</ul>
+
+<h2 id="en-files">5. Source files explained</h2>
+<p>Primary sources live in the synchronized group <code class="file">ProtoArc T1 Plus/</code> (Xcode target). Root-level duplicates like <code class="file">ContentView.swift</code> at repo root are not the main app target unless explicitly added.</p>
+
+<table>
+  <thead><tr><th>File</th><th>Role</th></tr></thead>
+  <tbody>
+    <tr><td><code class="file">ProtoArc_T1_PlusApp.swift</code></td><td><code>@main</code> SwiftUI app: creates <code>TouchpadController</code>, wires <code>AppDelegate</code>, defines <code>MenuBarExtra</code>, Settings window, and License window.</td></tr>
+    <tr><td><code class="file">AppDelegate.swift</code></td><td>NSApplication delegate: sets activation policy to accessory (menu bar app), activates app on launch, runs <code>AppStartup</code> and <code>unstickPointer</code>. Terminating after last window closed is disabled so the driver keeps running.</td></tr>
+    <tr><td><code class="file">MenuBarView.swift</code></td><td>Menu bar UI: start/stop, settings, license gate, quit. <code>AppStartup</code> syncs launch-at-login and optionally auto-starts the driver if licensed.</td></tr>
+    <tr><td><code class="file">ContentView.swift</code></td><td>Settings window layout: sidebar (status, permissions, license, toggles) and live touch panel; forwards logging/layout changes to the controller for HID-thread caches.</td></tr>
+    <tr><td><code class="file">LicenseView.swift</code></td><td><code>LicenseSection</code> in settings and <code>LicenseGateView</code> for activation UI bound to <code>SerialManager</code>.</td></tr>
+    <tr><td><code class="file">TouchpadController.swift</code></td><td>Central coordinator: license check, permissions, <code>IOHIDManager</code> open/close on <code>HIDRunLoop</code>, device match/removal, report callback → <code>ReportParser</code> + <code>GestureEngine</code>; publishes UI state on main actor; report rate timer on main.</td></tr>
+    <tr><td><code class="file">HIDRunLoop.swift</code></td><td>Dedicated thread running a CFRunLoop so HID callbacks never block the main thread (reduces UI freezes).</td></tr>
+    <tr><td><code class="file">ReportParser.swift</code></td><td>Parses Report ID 2 (digitizer) and mouse report into <code>TouchFrame</code> / button bitfields; <code>ReportLayout</code> switches buffer layout (report ID stripped vs included).</td></tr>
+    <tr><td><code class="file">GestureEngine.swift</code></td><td>State machine: pointer movement, taps, multi-finger scroll, pinch zoom shortcuts, three-finger swipes, physical button handling, double-tap-drag window (timing constants near top of file).</td></tr>
+    <tr><td><code class="file">EventSynthesizer.swift</code></td><td>Posts <code>CGEvent</code> for move/drag, clicks, scroll wheel, and system gesture key chords; uses a lock because it may be called from the HID thread.</td></tr>
+    <tr><td><code class="file">TouchModels.swift</code></td><td><code>DeviceIDs</code>, <code>TouchContact</code>, <code>TouchFrame</code>, enums for tap/gesture actions, and <code>TouchpadSettings</code> (UserDefaults-backed toggles and sliders).</td></tr>
+    <tr><td><code class="file">TouchpadUIState.swift</code></td><td>Observable UI-only state: throttled live finger display, raw report log when enabled; isolated from menu bar updates to limit SwiftUI churn.</td></tr>
+    <tr><td><code class="file">Permissions.swift</code></td><td>Checks and prompts for Input Monitoring and Accessibility (AXIsProcessTrusted).</td></tr>
+    <tr><td><code class="file">LaunchAtLogin.swift</code></td><td>Registers the app as a login item via <code>SMAppService</code> when the user enables launch at login.</td></tr>
+    <tr><td><code class="file">SerialManager.swift</code></td><td>Loads <code>SerialNumbers.txt</code>, validates weekly vs active serials, stores activation in UserDefaults.</td></tr>
+    <tr><td><code class="file">SerialNumbers.txt</code></td><td>Catalog of allowed serials (<code>[weekly]</code> / <code>[active]</code> sections). Edit and rebuild to change keys.</td></tr>
+    <tr><td><code class="file">TouchpadManager.swift</code></td><td>Historical / reference comments or helpers (not the primary HID path); see file header in project.</td></tr>
+  </tbody>
+</table>
+
+<p class="note"><strong>DriverKit files at repo root</strong> (<code>ProtoArcTouchpadDriver.*</code>, <code>ExtensionManager.swift</code>) are reference only and are <strong>not</strong> linked into the user-space app target.</p>
+
+<h2 id="en-study">6. Suggested study order</h2>
+<ol>
+  <li><code class="file">README.md</code> — device IDs and report byte layout.</li>
+  <li><code class="file">TouchModels.swift</code> — data shapes and settings.</li>
+  <li><code class="file">ReportParser.swift</code> — bytes → <code>TouchFrame</code>.</li>
+  <li><code class="file">GestureEngine.swift</code> — behavior and edge cases (Bluetooth gaps, double-tap window).</li>
+  <li><code class="file">EventSynthesizer.swift</code> — how events reach the OS.</li>
+  <li><code class="file">TouchpadController.swift</code> + <code class="file">HIDRunLoop.swift</code> — threading and lifecycle.</li>
+  <li>SwiftUI layer: <code class="file">ProtoArc_T1_PlusApp.swift</code>, <code class="file">ContentView.swift</code>, <code class="file">MenuBarView.swift</code>.</li>
+</ol>
+
+<!-- ========== ARABIC SECTION ========== -->
+<div class="break lang-ar" id="ar-start">
+  <h1>بروتوأرك T1 بلس<br /><span class="muted">دليل المطور والدراسة — العربية</span></h1>
+  <p class="muted">تطبيق macOS يشغّل لوحة اللمس من <strong>مساحة المستخدم</strong> عبر IOHIDManager ثم تركيب أحداث CGEvent. هذا القسم يعادل المحتوى الإنجليزي أعلاه.</p>
+
+  <h2 id="toc-ar">فهرس المحتوى</h2>
+  <ul>
+    <li><a href="#ar-1">١. نظرة عامة</a></li>
+    <li><a href="#ar-2">٢. البنية وتدفق البيانات</a></li>
+    <li><a href="#ar-3">٣. البناء والتشغيل</a></li>
+    <li><a href="#ar-4">٤. الأذونات والترخيص</a></li>
+    <li><a href="#ar-5">٥. شرح ملفات المصدر</a></li>
+    <li><a href="#ar-6">٦. ترتيب مقترح للدراسة</a></li>
+  </ul>
+
+  <h2 id="ar-1">١. نظرة عامة</h2>
+  <p>التطبيق يتصل بلوحة <strong>ProtoArc T1 Plus</strong> عبر <code>IOHIDManager</code> بمطابقة معرف البائع <code>1256</code> والمنتج <code>28705</code>، يقرأ تقارير HID الخام، ويحوّلها إلى إطارات لمس (<code>TouchFrame</code>) ثم يمرّرها إلى محرك إيماءات يولّد حركة المؤشر والنقر والتمرير واختصارات النظام عبر <code>CGEvent</code>.</p>
+
+  <h2 id="ar-2">٢. البنية وتدفق البيانات</h2>
+  <pre>
+Bluetooth HID  →  IOHIDManager (خيط CFRunLoop مخصص: HIDRunLoop)
+                      ↓ استدعاء تقرير الإدخال
+                 TouchpadController.handleReport
+                      ↓ ReportParser → TouchFrame
+                 GestureEngine.process(frame:)
+                      ↓
+                 EventSynthesizer  →  CGEvent
+
+واجهة SwiftUI على الخيط الرئيسي: شريط القوائم، النافذة، TouchpadUIState
+  </pre>
+
+  <h2 id="ar-3">٣. البناء والتشغيل</h2>
+  <h3>المتطلبات</h3>
+  <ul>
+    <li><strong>Xcode 26+</strong> ومشروع يستهدف macOS 26.</li>
+    <li>يمكن التوقيع محليًا (Sign to Run Locally).</li>
+  </ul>
+  <h3>البناء من Xcode</h3>
+  <ol>
+    <li>افتح <code class="file">ProtoArc T1 Plus.xcodeproj</code>.</li>
+    <li>اختر المخطط <strong>ProtoArc T1 Plus</strong> والوجهة <strong>My Mac</strong>.</li>
+    <li>اضغط <strong>⌘R</strong> للتشغيل أو <strong>⌘B</strong> للبناء.</li>
+  </ol>
+  <h3>البناء من الطرفية</h3>
+  <pre>cd "/path/to/ProtoArc T1 Plus"
+xcodebuild -project "ProtoArc T1 Plus.xcodeproj" \
+  -scheme "ProtoArc T1 Plus" -configuration Debug build</pre>
+  <h3>عند أول تشغيل</h3>
+  <ul>
+    <li>امنح <strong>مراقبة الإدخال</strong> و<strong>إمكانية الوصول</strong> من إعدادات النظام.</li>
+    <li>فعّل رقمًا تسلسليًا من <code class="file">SerialNumbers.txt</code>.</li>
+    <li>اربط اللوحة عبر البلوتوث ثم اضغط <strong>Start Driver</strong>.</li>
+  </ul>
+
+  <h2 id="ar-4">٤. الأذونات والترخيص</h2>
+  <ul>
+    <li><strong>مراقبة الإدخال</strong>: لقراءة تقارير HID.</li>
+    <li><strong>إمكانية الوصول</strong>: لحقن أحداث المؤشر واللوحة.</li>
+    <li>التطبيق <strong>غير معزول Sandbox</strong> بحسب إعدادات الهدف.</li>
+    <li><strong>SerialManager</strong> يقرأ القائمة من <code class="file">SerialNumbers.txt</code>: تراخيص أسبوعية (٧ أيام من التفعيل) أو دائمة.</li>
+  </ul>
+
+  <h2 id="ar-5">٥. شرح ملفات المصدر</h2>
+  <table>
+    <thead><tr><th>الملف</th><th>الوظيفة</th></tr></thead>
+    <tbody>
+      <tr><td><code class="file">ProtoArc_T1_PlusApp.swift</code></td><td>نقطة الدخول SwiftUI: إنشاء المتحكم، النوافذ، شريط القوائم.</td></tr>
+      <tr><td><code class="file">AppDelegate.swift</code></td><td>تفعيل التطبيق كشريط قوائم، تشغيل بدء التشغيل، إلغاء تجميد المؤشر عند الحاجة.</td></tr>
+      <tr><td><code class="file">MenuBarView.swift</code></td><td>قائمة شريط القوائم وبدء/إيقاف السائق.</td></tr>
+      <tr><td><code class="file">ContentView.swift</code></td><td>نافذة الإعدادات واللوحة الحية.</td></tr>
+      <tr><td><code class="file">LicenseView.swift</code></td><td>واجهة إدخال الترخيص.</td></tr>
+      <tr><td><code class="file">TouchpadController.swift</code></td><td>IOHIDManager، الخيط المخصص، ربط المحلل والمحرك.</td></tr>
+      <tr><td><code class="file">HIDRunLoop.swift</code></td><td>حلقة تشغيل خلفية لـ HID لتفادي تجميد الواجهة.</td></tr>
+      <tr><td><code class="file">ReportParser.swift</code></td><td>تحليل بايتات التقرير إلى TouchFrame.</td></tr>
+      <tr><td><code class="file">GestureEngine.swift</code></td><td>منطق الإيماءات والنقرات والتمرير.</td></tr>
+      <tr><td><code class="file">EventSynthesizer.swift</code></td><td>إرسال CGEvent.</td></tr>
+      <tr><td><code class="file">TouchModels.swift</code></td><td>النماذج والإعدادات المحفوظة.</td></tr>
+      <tr><td><code class="file">TouchpadUIState.swift</code></td><td>حالة العرض والسجل للواجهة فقط.</td></tr>
+      <tr><td><code class="file">Permissions.swift</code></td><td>التحقق من الأذونات وطلبها.</td></tr>
+      <tr><td><code class="file">LaunchAtLogin.swift</code></td><td>التشغيل عند تسجيل الدخول.</td></tr>
+      <tr><td><code class="file">SerialManager.swift</code></td><td>التحقق من الأرقام التسلسلية.</td></tr>
+      <tr><td><code class="file">SerialNumbers.txt</code></td><td>قائمة الأرقام المسموح بها.</td></tr>
+      <tr><td><code class="file">TouchpadManager.swift</code></td><td>مرجع/تعليقات؛ المسار الرئيسي هو TouchpadController.</td></tr>
+    </tbody>
+  </table>
+  <p class="note">ملفات <strong>DriverKit</strong> في جذر المستودع للمرجعية فقط وليست جزءًا من هدف التطبيق الحالي.</p>
+
+  <h2 id="ar-6">٦. ترتيب مقترح للدراسة</h2>
+  <ol>
+    <li><code class="file">README.md</code></li>
+    <li><code class="file">TouchModels.swift</code> ثم <code class="file">ReportParser.swift</code></li>
+    <li><code class="file">GestureEngine.swift</code> ثم <code class="file">EventSynthesizer.swift</code></li>
+    <li><code class="file">TouchpadController.swift</code> و<code class="file">HIDRunLoop.swift</code></li>
+    <li>ملفات SwiftUI</li>
+  </ol>
+</div>
+
+<p class="break muted" style="text-align:center;">End of guide — PDF generated from HTML (WeasyPrint). Source: <code class="file">docs/ProtoArc_T1_Plus_Developer_Guide.html</code></p>
+
+</body>
+</html>

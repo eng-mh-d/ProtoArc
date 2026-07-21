@@ -1,0 +1,17 @@
+# ProtoArc T1 Plus — Serial Numbers
+# ---------------------------------
+# [weekly]  = valid for 7 days after activation
+# [active]  = permanent license
+#
+# You can also use: weekly=CODE or active=CODE
+# Lines starting with # are ignored.
+
+[weekly]
+WEEK-PROTO-7D-001-A7F3
+WEEK-PROTO-7D-002-B8E4
+WEEK-PROTO-7D-003-C9D5
+
+[active]
+ACTIVE-PROTO-LIFE-001-X2K9
+ACTIVE-PROTO-LIFE-002-M4P7
+ACTIVE-PROTO-LIFE-003-R8T1

@@ -1,0 +1,10 @@
+{
+  "id": "protoarc-t1-plus-user-guide",
+  "name": "ProtoArc T1 Plus User Guide",
+  "short_name": "Guide",
+  "start_url": "UserGuide.html",
+  "scope": ".",
+  "display": "browser",
+  "background_color": "#0f1419",
+  "theme_color": "#0f1419"
+}
