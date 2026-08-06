@@ -9,10 +9,10 @@
 //  Windows-Precision-Touchpad-style frame:
 //
 //      Finger[0..3]  (4 bytes each, 16 bytes total):
-//          byte 0:  bit0 tipSwitch
-//                   bit1 inRange
-//                   bits2-3 padding
-//                   bits4-7 contactID (4-bit, 0...15)
+//          byte 0:  bit0     confidence
+//                   bit1     tipSwitch
+//                   bits2-3  padding
+//                   bits4-7  contactID (4-bit, 0...15)
 //          byte 1-3: X (12-bit) then Y (12-bit), little-endian bit packing
 //                    v = b1 | (b2<<8) | (b3<<16);  X = v & 0xFFF;  Y = (v>>12)&0xFFF
 //          (X max 3200, Y max 2000)
@@ -20,16 +20,16 @@
 //      Last byte:    bits0-6 contactCount (0...127)
 //                    bit7     button (physical click)
 //
-//  Total payload = 19 bytes. The device's MaxInputReportSize is 20, which
-//  includes the leading Report ID byte. `IOHIDManager` usually delivers the
-//  payload with that Report ID byte stripped (so 19 bytes, ID passed
-//  separately); `ReportLayout` lets the user flip this if needed.
+//  Total payload = 19 bytes. MaxInputReportSize is 20.
+//  On older macOS, IOHIDManager usually strips the Report ID byte (19-byte
+//  buffer). On macOS 26 BLE it often delivers 20 bytes with the Report ID
+//  still in byte 0 while also passing reportID separately — auto-detect that.
 //
 
 import Foundation
 
 enum ReportLayout: Int, CaseIterable, Identifiable {
-    /// Buffer starts at finger 0 (Report ID already stripped). IOHIDManager default.
+    /// Buffer starts at finger 0 (Report ID already stripped).
     case userspaceNoReportID = 0
     /// Buffer starts at the Report ID byte (raw 20-byte buffer).
     case rawWithReportID = 1
@@ -38,8 +38,8 @@ enum ReportLayout: Int, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .userspaceNoReportID: return "Report ID stripped (default)"
-        case .rawWithReportID: return "Report ID included"
+        case .userspaceNoReportID: return "Report ID stripped"
+        case .rawWithReportID: return "Report ID included (macOS 26)"
         }
     }
 
@@ -71,6 +71,31 @@ enum ReportParser {
     /// fingers(16) + scanTime(2) + countByte(1)
     static let payloadLength = 19
 
+    /// Pick the correct byte offset for this buffer.
+    /// macOS 26 BLE commonly delivers `len == 20` with `bytes[0] == reportID`
+    /// even though `reportID` is also passed as an argument.
+    static func resolvedLayout(
+        reportID: UInt32,
+        length: Int,
+        bytes: UnsafePointer<UInt8>,
+        preferred: ReportLayout
+    ) -> ReportLayout {
+        if length >= payloadLength + 1, bytes[0] == UInt8(truncatingIfNeeded: reportID) {
+            return .rawWithReportID
+        }
+        if length == payloadLength {
+            return .userspaceNoReportID
+        }
+        // Prefer an offset that leaves enough bytes for a full payload.
+        if length - preferred.dataOffset >= payloadLength {
+            return preferred
+        }
+        if length > payloadLength {
+            return .rawWithReportID
+        }
+        return .userspaceNoReportID
+    }
+
     /// Parse a raw report buffer into a `TouchFrame`.
     /// - Returns: nil when the buffer is too short to decode safely.
     static func parse(_ bytes: UnsafePointer<UInt8>, length: Int, layout: ReportLayout) -> TouchFrame? {
@@ -83,8 +108,9 @@ enum ReportParser {
         var off = base
         for _ in 0..<maxContacts {
             let flags = bytes[off]
-            let tip = (flags & 0x01) != 0
-            let inRange = (flags & 0x02) != 0
+            // Descriptor order: Confidence (bit0), Tip Switch (bit1).
+            let confidence = (flags & 0x01) != 0
+            let tip = (flags & 0x02) != 0
             let cid = Int((flags >> 4) & 0x0F)
 
             // 12-bit X then 12-bit Y, packed LSB-first across 3 bytes.
@@ -95,11 +121,13 @@ enum ReportParser {
             let x = v & 0xFFF
             let y = (v >> 12) & 0xFFF
 
-            if tip || inRange {
+            // Treat confidence as "in range" for gating — this device has no
+            // separate In Range bit in the descriptor.
+            if tip || confidence {
                 contacts.append(TouchContact(
                     contactID: cid,
                     tipSwitch: tip,
-                    inRange: inRange,
+                    inRange: confidence,
                     rawX: Double(x),
                     rawY: Double(y)
                 ))
@@ -119,7 +147,13 @@ enum ReportParser {
     /// HID boot-mouse layout the first payload byte holds the button bits
     /// (bit0 = left, bit1 = right, bit2 = middle).
     static func mouseButtons(_ bytes: UnsafePointer<UInt8>, length: Int, layout: ReportLayout) -> MouseButtons? {
-        let base = layout.dataOffset
+        // Mouse report is 3 data bytes; on macOS 26 it may also include the ID.
+        let base: Int
+        if length >= 4, bytes[0] == UInt8(truncatingIfNeeded: mouseReportID) {
+            base = 1
+        } else {
+            base = layout.dataOffset == 1 && length >= 2 ? 1 : 0
+        }
         guard length - base >= 1 else { return nil }
         let b = bytes[base]
         return MouseButtons(left: (b & 0x01) != 0,

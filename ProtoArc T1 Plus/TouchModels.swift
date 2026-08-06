@@ -56,7 +56,15 @@ struct TouchFrame: Equatable {
     var touching: [TouchContact] { contacts.filter { $0.tipSwitch } }
 
     /// Fingers firmly on the pad — used by the gesture engine (matches live UI).
-    var activeTouching: [TouchContact] { contacts.filter { $0.tipSwitch && $0.inRange } }
+    /// Dedupes by contactID (last wins) so a bad/partial report never crashes
+    /// Dictionary(uniqueKeysWithValues:) or double-counts a finger.
+    var activeTouching: [TouchContact] {
+        var byID: [Int: TouchContact] = [:]
+        for c in contacts where c.tipSwitch && c.inRange {
+            byID[c.contactID] = c
+        }
+        return Array(byID.values)
+    }
 
     /// Frame for the live UI: only fingers firmly on the pad (`tipSwitch` + `inRange`).
     static func displayFrame(from frame: TouchFrame) -> TouchFrame {
@@ -229,13 +237,13 @@ final class TouchpadSettings: ObservableObject {
         enableGestures = bool("enableGestures", true)
         seizeDevice = bool("seizeDevice", true)
         horizontalSwipeRawValue = int("horizontalSwipeRawValue", HorizontalSwipeAction.spaces.rawValue)
-        layoutRawValue = int("layoutRawValue", ReportLayout.userspaceNoReportID.rawValue)
+        layoutRawValue = int("layoutRawValue", ReportLayout.rawWithReportID.rawValue)
         autoStartDriver = bool("autoStartDriver", true)
         launchAtLogin = bool("launchAtLogin", true)
     }
 
     var layout: ReportLayout {
-        get { ReportLayout(rawValue: layoutRawValue) ?? .userspaceNoReportID }
+        get { ReportLayout(rawValue: layoutRawValue) ?? .rawWithReportID }
         set { layoutRawValue = newValue.rawValue }
     }
 

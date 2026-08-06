@@ -253,7 +253,7 @@ private struct SettingsSection: View {
             Divider()
 
             Toggle("Seize device (exclusive access)", isOn: $settings.seizeDevice)
-                .help("Prevents macOS from also processing the device. Re-press Start to apply.")
+                .help("Required for smooth pointer on macOS 26+: blocks the system BLE mouse report so macOS and this app do not both move the cursor. Stop and Start to apply.")
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Report layout")

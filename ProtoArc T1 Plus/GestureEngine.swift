@@ -281,7 +281,12 @@ final class GestureEngine {
         }
 
         // Remember positions for next-frame deltas.
-        lastPositions = Dictionary(uniqueKeysWithValues: touching.map { ($0.contactID, CGPoint(x: $0.rawX, y: $0.rawY)) })
+        // Hardware/parser can occasionally emit duplicate contactIDs in one
+        // frame; uniquing avoids a fatal Dictionary crash.
+        lastPositions = Dictionary(
+            touching.map { ($0.contactID, CGPoint(x: $0.rawX, y: $0.rawY)) },
+            uniquingKeysWith: { _, last in last }
+        )
     }
 
     // MARK: - Physical mouse buttons (Report ID 1)

@@ -27,9 +27,10 @@ enum Permissions {
     }
 
     static func openAccessibilitySettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-            NSWorkspace.shared.open(url)
-        }
+        openPrivacyPane(candidates: [
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.Privacy_Accessibility",
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+        ])
     }
 
     // MARK: - Input Monitoring (read HID)
@@ -51,8 +52,20 @@ enum Permissions {
     }
 
     static func openInputMonitoringSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
-            NSWorkspace.shared.open(url)
+        openPrivacyPane(candidates: [
+            "x-apple.systempreferences:com.apple.settings.PrivacySecurity.Privacy_ListenEvent",
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent",
+        ])
+    }
+
+    // MARK: - Helpers
+
+    /// Newer macOS builds moved Privacy panes; try modern URLs first, then legacy.
+    private static func openPrivacyPane(candidates: [String]) {
+        for raw in candidates {
+            if let url = URL(string: raw), NSWorkspace.shared.open(url) {
+                return
+            }
         }
     }
 }

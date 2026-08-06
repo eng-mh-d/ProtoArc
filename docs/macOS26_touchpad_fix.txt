@@ -1,0 +1,85 @@
+ProtoArc T1 Plus — macOS 26 Touchpad Fix Record
+================================================
+Date: 2026-08-06
+macOS: 26.5.x (Tahoe) — Bluetooth LE HID delivery changed
+
+Problem
+-------
+After updating to macOS 26, the touchpad pointer stopped working correctly:
+  - Finger marker stuck at (0, 0) in the app touch view
+  - Random finger count while moving
+  - Cursor movement felt broken / jumpy
+
+Root cause
+----------
+On older macOS, IOHIDManager usually delivered Report ID 2 as a 19-byte
+payload with the Report ID byte stripped (reportID passed separately).
+
+On macOS 26 (BLE), the same report is often delivered as 20 bytes with the
+Report ID still present in byte 0, for example:
+
+  02 03 14 00 00 13 EE 8B 03 ...
+  ^^
+  Report ID byte still inside the buffer
+
+The app was parsing with "Report ID stripped" (offset 0), so it treated 0x02
+as finger flags. That produced a ghost finger at 0,0 and garbage contact counts.
+
+Confirmed by live HID capture (VID 1256 / PID 28705, MaxInputReportSize=20).
+HID descriptor still defines a 19-byte multitouch payload for Report ID 2;
+only the delivery wrapper changed.
+
+Fix (code)
+----------
+1) ReportParser.swift
+   - Auto-detect layout: if length >= 20 and bytes[0] == reportID,
+     use "Report ID included" (dataOffset = 1).
+   - Default layout preference: rawWithReportID (macOS 26).
+   - Tip/confidence bits aligned with descriptor:
+       bit0 = Confidence, bit1 = Tip Switch
+       (no separate In Range bit on this device)
+
+2) TouchpadController.swift
+   - Use ReportParser.resolvedLayout(...) on every report.
+   - Device-level seize for BLE interfaces so macOS and the app do not both
+     drive the cursor (reduces jitter).
+   - Only one primary device gets the input-report callback (avoids double move).
+   - Do not pass nil into IOHIDDeviceRegisterInputReportCallback (Swift IOKit
+     requires a real buffer pointer); close the device instead.
+
+3) GestureEngine.swift / TouchModels.swift
+   - Deduplicate contactIDs so Dictionary uniquing cannot crash with
+     "Fatal error: Duplicate values for key: 'N'".
+
+4) Permissions.swift
+   - Updated Privacy Settings URL candidates for modern System Settings panes.
+
+5) UserDefaults
+   - Cleared stale layoutRawValue so the new default / auto-detect applies.
+
+How to verify
+-------------
+1. Rebuild and run the app from Xcode.
+2. Settings → Report layout should be "Report ID included (macOS 26)"
+   (auto-detect also forces this when byte0 == 0x02).
+3. Keep "Seize device" ON, Stop then Start.
+4. One-finger slide: finger tracks across the pad; pointer moves smoothly.
+
+Arabic summary / ملخص عربي
+--------------------------
+السبب: في macOS 26 أصبحت بيانات اللمس تصل بطول 20 بايت مع بقاء رقم التقرير
+(02) في أول بايت، بينما التطبيق كان يقرأ كأن هذا البايت محذوف.
+
+النتيجة السابقة: إصبع عند 0,0 وعدد أصابع عشوائي ومؤشر سيء.
+
+الإصلاح: اكتشاف تلقائي للإزاحة الصحيحة (تخطي بايت رقم التقرير) وتحديث
+القراءة الافتراضية + تحسين Seize ومنع معالجة الجهاز مرتين.
+
+Files touched
+-------------
+  ProtoArc T1 Plus/ReportParser.swift
+  ProtoArc T1 Plus/TouchpadController.swift
+  ProtoArc T1 Plus/GestureEngine.swift
+  ProtoArc T1 Plus/TouchModels.swift
+  ProtoArc T1 Plus/Permissions.swift
+  ProtoArc T1 Plus/ContentView.swift  (seize / layout help text)

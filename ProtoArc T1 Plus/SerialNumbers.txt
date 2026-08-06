@@ -5,14 +5,13 @@
 #
 # You can also use: weekly=CODE or active=CODE
 # Lines starting with # are ignored.
-#
-# For your private codes, keep a local copy as SerialNumbers.private.txt
-# (that filename is gitignored and not uploaded).
 
 [weekly]
-WEEK-EXAMPLE-7D-001-XXXX
-WEEK-EXAMPLE-7D-002-XXXX
+WEEK-PROTO-7D-001-A7F3
+WEEK-PROTO-7D-002-B8E4
+WEEK-PROTO-7D-003-C9D5
 
 [active]
-ACTIVE-EXAMPLE-LIFE-001-XXXX
-ACTIVE-EXAMPLE-LIFE-002-XXXX
+ACTIVE-PROTO-LIFE-001-X2K9
+ACTIVE-PROTO-LIFE-002-M4P7
+ACTIVE-PROTO-LIFE-003-R8T1
